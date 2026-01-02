@@ -14,9 +14,9 @@
     {
       "id": "id_1767342255972_i2zxdk7ua",
       "title": "Untitled Note",
-      "content": "",
+      "content": "# work\n> wow",
       "createdAt": 1767342255972,
-      "updatedAt": 1767342255972
+      "updatedAt": 1767342324669
     }
   ],
   "versions": [
@@ -47,6 +47,19 @@
         "updatedAt": 1767342255972
       },
       "createdAt": 1767342255972
+    },
+    {
+      "id": "id_1767342324669_cwuhl8w0w",
+      "itemId": "id_1767342255972_i2zxdk7ua",
+      "itemType": "note",
+      "data": {
+        "id": "id_1767342255972_i2zxdk7ua",
+        "title": "Untitled Note",
+        "content": "# work\n> wow",
+        "createdAt": 1767342255972,
+        "updatedAt": 1767342324669
+      },
+      "createdAt": 1767342324669
     }
   ]
 }
