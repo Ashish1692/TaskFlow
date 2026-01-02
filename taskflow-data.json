@@ -10,7 +10,15 @@
       "updatedAt": 1767341735980
     }
   ],
-  "notes": [],
+  "notes": [
+    {
+      "id": "id_1767342255972_i2zxdk7ua",
+      "title": "Untitled Note",
+      "content": "",
+      "createdAt": 1767342255972,
+      "updatedAt": 1767342255972
+    }
+  ],
   "versions": [
     {
       "id": "id_1767341735980_c7qzqvt0h",
@@ -26,6 +34,19 @@
         "updatedAt": 1767341735980
       },
       "createdAt": 1767341735980
+    },
+    {
+      "id": "id_1767342255972_7r4twkxxq",
+      "itemId": "id_1767342255972_i2zxdk7ua",
+      "itemType": "note",
+      "data": {
+        "id": "id_1767342255972_i2zxdk7ua",
+        "title": "Untitled Note",
+        "content": "",
+        "createdAt": 1767342255972,
+        "updatedAt": 1767342255972
+      },
+      "createdAt": 1767342255972
     }
   ]
 }
