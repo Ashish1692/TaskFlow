@@ -4,10 +4,10 @@
       "id": "id_1767341735980_wzs7z2w5v",
       "title": "Test",
       "description": "",
-      "status": "in-progress",
+      "status": "done",
       "comments": [],
       "createdAt": 1767341735980,
-      "updatedAt": 1767342530753
+      "updatedAt": 1767342789327
     }
   ],
   "notes": [
@@ -75,6 +75,21 @@
         "updatedAt": 1767342530753
       },
       "createdAt": 1767342530753
+    },
+    {
+      "id": "id_1767342789327_c7wtgdfac",
+      "itemId": "id_1767341735980_wzs7z2w5v",
+      "itemType": "task",
+      "data": {
+        "id": "id_1767341735980_wzs7z2w5v",
+        "title": "Test",
+        "description": "",
+        "status": "done",
+        "comments": [],
+        "createdAt": 1767341735980,
+        "updatedAt": 1767342789327
+      },
+      "createdAt": 1767342789327
     }
   ]
 }
