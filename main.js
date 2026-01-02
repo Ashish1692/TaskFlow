@@ -14,6 +14,46 @@ let isNoteEditing = false;
 let draggedTaskId = null;
 let lastSyncTime = null;
 
+// Ensure all functions are available globally
+window.setView = setView;
+window.showAddTask = showAddTask;
+window.closeAddTaskModal = closeAddTaskModal;
+window.addTask = addTask;
+window.editTaskTitle = editTaskTitle;
+window.confirmDeleteTask = confirmDeleteTask;
+window.handleDragStart = handleDragStart;
+window.handleDragEnd = handleDragEnd;
+window.handleDragOver = handleDragOver;
+window.handleDragLeave = handleDragLeave;
+window.handleDrop = handleDrop;
+window.showComments = showComments;
+window.closeCommentsModal = closeCommentsModal;
+window.addComment = addComment;
+window.deleteComment = deleteComment;
+window.showTaskHistory = showTaskHistory;
+window.showNoteHistory = showNoteHistory;
+window.closeHistoryModal = closeHistoryModal;
+window.revertToVersion = revertToVersion;
+window.syncNotesWithGitHub = syncNotesWithGitHub;
+window.saveNoteToFile = saveNoteToFile;
+window.importNoteFromFile = importNoteFromFile;
+window.selectNote = selectNote;
+window.toggleNoteEdit = toggleNoteEdit;
+window.updateNoteTitle = updateNoteTitle;
+window.updateNoteContent = updateNoteContent;
+window.createNote = createNote;
+window.deleteCurrentNote = deleteCurrentNote;
+window.handleSearch = handleSearch;
+window.showSetup = showSetup;
+window.saveGitHubConfig = saveGitHubConfig;
+window.skipGitHubSetup = skipGitHubSetup;
+window.showSettings = showSettings;
+window.closeSettings = closeSettings;
+window.exportData = exportData;
+window.importData = importData;
+window.clearAllData = clearAllData;
+window.syncWithGitHub = syncWithGitHub;
+
 // ==================== GITHUB API ====================
 const GitHubStorage = {
   config: null,
@@ -452,7 +492,7 @@ function showToast(message) {
 }
 
 // ==================== VIEW MANAGEMENT ====================
-window.setView = function(view) {
+function setView(view) {
   currentView = view;
   
   document.getElementById('kanbanView').classList.toggle('hidden', view !== 'kanban');
@@ -465,7 +505,7 @@ window.setView = function(view) {
   document.getElementById('notesTab').className = view === 'notes'
     ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-blue-600 shadow-sm'
     : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-gray-800';
-};
+}
 
 // ==================== KANBAN RENDERING ====================
 function renderTasks() {
@@ -525,27 +565,27 @@ function escapeHtml(text) {
 }
 
 // ==================== TASK ACTIONS ====================
-window.showAddTask = function(status) {
+function showAddTask(status) {
   addTaskStatus = status;
   document.getElementById('addTaskModal').classList.remove('hidden');
   document.getElementById('newTaskTitle').value = '';
   document.getElementById('newTaskTitle').focus();
-};
+}
 
-window.closeAddTaskModal = function() {
+function closeAddTaskModal() {
   document.getElementById('addTaskModal').classList.add('hidden');
-};
+}
 
-window.addTask = function() {
+function addTask() {
   const title = document.getElementById('newTaskTitle').value.trim();
   if (title) {
     createTask(title, addTaskStatus);
     closeAddTaskModal();
     renderTasks();
   }
-};
+}
 
-window.editTaskTitle = function(taskId) {
+function editTaskTitle(taskId) {
   const el = document.getElementById(`task-title-${taskId}`);
   const task = appData.tasks.find(t => t.id === taskId);
   if (!task) return;
@@ -567,7 +607,7 @@ window.editTaskTitle = function(taskId) {
   el.replaceWith(input);
   input.focus();
   input.select();
-};
+}
 
 function saveTaskTitle(taskId, newTitle) {
   if (newTitle.trim()) {
@@ -576,36 +616,36 @@ function saveTaskTitle(taskId, newTitle) {
   renderTasks();
 }
 
-window.confirmDeleteTask = function(taskId) {
+function confirmDeleteTask(taskId) {
   if (confirm('Delete this task?')) {
     deleteTask(taskId);
     renderTasks();
   }
-};
+}
 
 // Drag and Drop
-window.handleDragStart = function(event, taskId) {
+function handleDragStart(event, taskId) {
   draggedTaskId = taskId;
   event.target.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
-};
+}
 
-window.handleDragEnd = function(event) {
+function handleDragEnd(event) {
   event.target.classList.remove('dragging');
   document.querySelectorAll('.column').forEach(col => col.classList.remove('drag-over'));
-};
+}
 
-window.handleDragOver = function(event) {
+function handleDragOver(event) {
   event.preventDefault();
   event.dataTransfer.dropEffect = 'move';
   event.currentTarget.classList.add('drag-over');
-};
+}
 
-window.handleDragLeave = function(event) {
+function handleDragLeave(event) {
   event.currentTarget.classList.remove('drag-over');
-};
+}
 
-window.handleDrop = function(event, status) {
+function handleDrop(event, status) {
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
   
@@ -617,22 +657,22 @@ window.handleDrop = function(event, status) {
     }
     draggedTaskId = null;
   }
-};
+}
 
 // ==================== COMMENTS ====================
-window.showComments = function(taskId) {
+function showComments(taskId) {
   currentTaskForComments = appData.tasks.find(t => t.id === taskId);
   if (!currentTaskForComments) return;
   
   document.getElementById('commentsTitle').textContent = `Comments - ${currentTaskForComments.title}`;
   renderComments();
   document.getElementById('commentsModal').classList.remove('hidden');
-};
+}
 
-window.closeCommentsModal = function() {
+function closeCommentsModal() {
   document.getElementById('commentsModal').classList.add('hidden');
   currentTaskForComments = null;
-};
+}
 
 function renderComments() {
   if (!currentTaskForComments) return;
@@ -653,7 +693,7 @@ function renderComments() {
       `).join('');
 }
 
-window.addComment = function() {
+function addComment() {
   const input = document.getElementById('newComment');
   const content = input.value.trim();
   if (content && currentTaskForComments) {
@@ -663,35 +703,35 @@ window.addComment = function() {
     renderComments();
     renderTasks();
   }
-};
+}
 
-window.deleteComment = function(commentId) {
+function deleteComment(commentId) {
   if (currentTaskForComments) {
     deleteCommentFromTask(currentTaskForComments.id, commentId);
     currentTaskForComments = appData.tasks.find(t => t.id === currentTaskForComments.id);
     renderComments();
     renderTasks();
   }
-};
+}
 
 // ==================== HISTORY ====================
-window.showTaskHistory = function(taskId) {
+function showTaskHistory(taskId) {
   currentHistoryItem = { id: taskId, type: 'task' };
   renderHistory();
   document.getElementById('historyModal').classList.remove('hidden');
-};
+}
 
-window.showNoteHistory = function() {
+function showNoteHistory() {
   if (!currentNote) return;
   currentHistoryItem = { id: currentNote.id, type: 'note' };
   renderHistory();
   document.getElementById('historyModal').classList.remove('hidden');
-};
+}
 
-window.closeHistoryModal = function() {
+function closeHistoryModal() {
   document.getElementById('historyModal').classList.add('hidden');
   currentHistoryItem = null;
-};
+}
 
 function renderHistory() {
   if (!currentHistoryItem) return;
@@ -722,7 +762,7 @@ function renderHistory() {
       `).join('');
 }
 
-window.revertToVersion = function(versionId) {
+function revertToVersion(versionId) {
   const version = appData.versions.find(v => v.id === versionId);
   if (!version) return;
   
@@ -746,10 +786,10 @@ window.revertToVersion = function(versionId) {
   
   closeHistoryModal();
   showToast('Reverted to previous version');
-};
+}
 
 // ==================== SYNC NOTES SPECIFICALLY ====================
-window.syncNotesWithGitHub = async function() {
+async function syncNotesWithGitHub() {
   if (!GitHubStorage.isConfigured()) {
     showSetup();
     return;
@@ -789,9 +829,9 @@ window.syncNotesWithGitHub = async function() {
   renderNotes();
   renderNoteEditor();
   showToast(success ? 'Notes synced!' : 'Sync failed');
-};
+}
 
-window.saveNoteToFile = function(format = 'json') {
+function saveNoteToFile(format = 'json') {
   if (!currentNote) return;
   
   if (format === 'md') {
@@ -821,7 +861,7 @@ window.saveNoteToFile = function(format = 'json') {
     // Fallback to download
     downloadNoteAsFile(noteData);
   }
-};
+}
 
 async function saveNoteWithFilePicker(noteData) {
   try {
@@ -856,7 +896,7 @@ function downloadNoteAsFile(noteData) {
   showToast('Note downloaded!');
 }
 
-window.importNoteFromFile = function() {
+function importNoteFromFile() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json,.md,.txt';
@@ -901,7 +941,7 @@ window.importNoteFromFile = function() {
     }
   };
   input.click();
-};
+}
 
 // ==================== NOTES ====================
 function renderNotes() {
@@ -927,7 +967,7 @@ function renderNotes() {
       `).join('');
 }
 
-window.selectNote = function(noteId) {
+function selectNote(noteId) {
   // Save current note if editing
   if (isNoteEditing && currentNote) {
     saveCurrentNote();
@@ -937,7 +977,7 @@ window.selectNote = function(noteId) {
   isNoteEditing = false;
   renderNotes();
   renderNoteEditor();
-};
+}
 
 function renderNoteEditor() {
   if (!currentNote) {
@@ -972,7 +1012,7 @@ function renderNoteEditor() {
   }
 }
 
-window.toggleNoteEdit = function() {
+function toggleNoteEdit() {
   if (isNoteEditing) {
     saveCurrentNote();
     isNoteEditing = false;
@@ -980,9 +1020,9 @@ window.toggleNoteEdit = function() {
     isNoteEditing = true;
   }
   renderNoteEditor();
-};
+}
 
-window.updateNoteTitle = function() {
+function updateNoteTitle() {
   if (currentNote) {
     const newTitle = document.getElementById('noteTitle').value.trim();
     if (newTitle && newTitle !== currentNote.title) {
@@ -991,13 +1031,13 @@ window.updateNoteTitle = function() {
       renderNotes();
     }
   }
-};
+}
 
-window.updateNoteContent = function() {
+function updateNoteContent() {
   if (currentNote) {
     saveCurrentNote();
   }
-};
+}
 
 function saveCurrentNote() {
   if (!currentNote) return;
@@ -1010,7 +1050,7 @@ function saveCurrentNote() {
   }
 }
 
-window.createNote = function() {
+function createNote() {
   const note = createNewNote();
   currentNote = note;
   isNoteEditing = true;
@@ -1018,34 +1058,34 @@ window.createNote = function() {
   renderNoteEditor();
   document.getElementById('noteTitle').focus();
   document.getElementById('noteTitle').select();
-};
+}
 
-window.deleteCurrentNote = function() {
+function deleteCurrentNote() {
   if (currentNote && confirm('Delete this note?')) {
     deleteNote(currentNote.id);
     currentNote = null;
     renderNotes();
     renderNoteEditor();
   }
-};
+}
 
 // ==================== SEARCH ====================
-window.handleSearch = function() {
+function handleSearch() {
   renderTasks();
   renderNotes();
-};
+}
 
 // ==================== SETTINGS & GITHUB CONFIG ====================
-window.showSetup = function() {
+function showSetup() {
   document.getElementById('setupModal').classList.remove('hidden');
   if (GitHubStorage.config) {
     document.getElementById('githubToken').value = GitHubStorage.config.token || '';
     document.getElementById('githubRepo').value = GitHubStorage.config.repo || '';
     document.getElementById('githubBranch').value = GitHubStorage.config.branch || 'main';
   }
-};
+}
 
-window.saveGitHubConfig = async function() {
+async function saveGitHubConfig() {
   const token = document.getElementById('githubToken').value.trim();
   const repo = document.getElementById('githubRepo').value.trim();
   const branch = document.getElementById('githubBranch').value.trim() || 'main';
@@ -1067,26 +1107,26 @@ window.saveGitHubConfig = async function() {
     alert('Failed to connect. Please check your token and repository.');
     GitHubStorage.clearConfig();
   }
-};
+}
 
-window.skipGitHubSetup = function() {
+function skipGitHubSetup() {
   document.getElementById('setupModal').classList.add('hidden');
   updateSyncStatus('local');
-};
+}
 
-window.showSettings = function() {
+function showSettings() {
   document.getElementById('githubStatus').textContent = GitHubStorage.isConfigured()
     ? `Connected to: ${GitHubStorage.config.repo}`
     : 'Not connected';
   document.getElementById('settingsModal').classList.remove('hidden');
-};
+}
 
-window.closeSettings = function() {
+function closeSettings() {
   document.getElementById('settingsModal').classList.add('hidden');
-};
+}
 
 // ==================== EXPORT/IMPORT ====================
-window.exportData = function() {
+function exportData() {
   const data = {
     version: '1.0',
     exportedAt: Date.now(),
@@ -1101,9 +1141,9 @@ window.exportData = function() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('Data exported!');
-};
+}
 
-window.importData = function() {
+function importData() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json';
@@ -1132,9 +1172,9 @@ window.importData = function() {
     }
   };
   input.click();
-};
+}
 
-window.clearAllData = function() {
+function clearAllData() {
   if (confirm('Are you sure? This will delete ALL your data!')) {
     if (confirm('This action cannot be undone. Continue?')) {
       appData = { tasks: [], notes: [], versions: [] };
@@ -1144,7 +1184,7 @@ window.clearAllData = function() {
       showToast('All data cleared');
     }
   }
-};
+}
 
 // ==================== INITIALIZATION ====================
 function renderAll() {
@@ -1178,5 +1218,9 @@ async function init() {
   }
 }
 
-// Start the app
-init();
+// Start the app when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
