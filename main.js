@@ -53,6 +53,51 @@ window.exportData = exportData;
 window.importData = importData;
 window.clearAllData = clearAllData;
 window.syncWithGitHub = syncWithGitHub;
+window.toggleDarkMode = toggleDarkMode;
+
+// ==================== DARK MODE ====================
+function toggleDarkMode() {
+  const html = document.documentElement;
+  const isDark = html.classList.contains('dark');
+  
+  if (isDark) {
+    html.classList.remove('dark');
+    localStorage.setItem('darkMode', 'false');
+  } else {
+    html.classList.add('dark');
+    localStorage.setItem('darkMode', 'true');
+  }
+  
+  updateDarkModeIcon();
+}
+
+function updateDarkModeIcon() {
+  const isDark = document.documentElement.classList.contains('dark');
+  const darkModeIcon = document.getElementById('darkModeIcon');
+  
+  if (darkModeIcon) {
+    if (isDark) {
+      // Show moon icon
+      darkModeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`;
+    } else {
+      // Show sun icon
+      darkModeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`;
+    }
+  }
+}
+
+function initDarkMode() {
+  const savedMode = localStorage.getItem('darkMode');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  if (savedMode === 'true' || (savedMode === null && prefersDark)) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  
+  updateDarkModeIcon();
+}
 
 // ==================== GITHUB API ====================
 const GitHubStorage = {
@@ -445,7 +490,7 @@ function updateSyncStatus(status) {
       if (notesSyncText) notesSyncText.textContent = 'Error';
       break;
     default:
-      icon.className = 'w-2 h-2 rounded-full bg-gray-300';
+      icon.className = 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600';
       text.textContent = 'Local';
       if (lastSyncEl) lastSyncEl.classList.add('hidden');
       if (notesSyncText) notesSyncText.textContent = 'Sync';
@@ -482,7 +527,7 @@ function updateStats() {
 
 function showToast(message) {
   const toast = document.createElement('div');
-  toast.className = 'fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity';
+  toast.className = 'fixed bottom-4 right-4 bg-gray-800 dark:bg-slate-700 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity';
   toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(() => {
@@ -499,12 +544,12 @@ function setView(view) {
   document.getElementById('notesView').classList.toggle('hidden', view !== 'notes');
   
   document.getElementById('kanbanTab').className = view === 'kanban' 
-    ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-blue-600 shadow-sm'
-    : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-gray-800';
+    ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
+    : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
   
   document.getElementById('notesTab').className = view === 'notes'
-    ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-blue-600 shadow-sm'
-    : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-gray-800';
+    ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
+    : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
 }
 
 // ==================== KANBAN RENDERING ====================
@@ -531,25 +576,25 @@ function renderTasks() {
 
 function renderTaskCard(task) {
   return `
-    <div class="task-card bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow"
+    <div class="task-card bg-white dark:bg-slate-700 rounded-lg shadow-sm border border-gray-200 dark:border-slate-600 p-3 hover:shadow-md transition-shadow"
          draggable="true" 
          ondragstart="handleDragStart(event, '${task.id}')"
          ondragend="handleDragEnd(event)"
          data-task-id="${task.id}">
-      <h4 class="font-medium text-gray-800 cursor-pointer hover:text-blue-600" 
+      <h4 class="font-medium text-gray-800 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400" 
           onclick="editTaskTitle('${task.id}')" 
           id="task-title-${task.id}">${escapeHtml(task.title)}</h4>
       <div class="flex items-center justify-between mt-2">
-        <span class="text-xs text-gray-400">${formatRelativeDate(task.updatedAt)}</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500">${formatRelativeDate(task.updatedAt)}</span>
         <div class="flex items-center gap-1">
-          <button onclick="showComments('${task.id}')" class="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded relative" title="Comments">
+          <button onclick="showComments('${task.id}')" class="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded relative" title="Comments">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             ${task.comments.length > 0 ? `<span class="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">${task.comments.length}</span>` : ''}
           </button>
-          <button onclick="showTaskHistory('${task.id}')" class="p-1 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded" title="History">
+          <button onclick="showTaskHistory('${task.id}')" class="p-1 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded" title="History">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </button>
-          <button onclick="confirmDeleteTask('${task.id}')" class="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded" title="Delete">
+          <button onclick="confirmDeleteTask('${task.id}')" class="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="Delete">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </button>
         </div>
@@ -679,16 +724,16 @@ function renderComments() {
   
   const comments = [...currentTaskForComments.comments].reverse();
   document.getElementById('commentsList').innerHTML = comments.length === 0
-    ? '<p class="text-center text-gray-400 py-8">No comments yet</p>'
+    ? '<p class="text-center text-gray-400 dark:text-gray-500 py-8">No comments yet</p>'
     : comments.map(comment => `
-        <div class="bg-gray-50 rounded-lg p-3 group">
+        <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 group">
           <div class="flex items-start justify-between gap-2">
-            <p class="text-gray-700 flex-1">${escapeHtml(comment.content)}</p>
-            <button onclick="deleteComment('${comment.id}')" class="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            <p class="text-gray-700 dark:text-gray-200 flex-1">${escapeHtml(comment.content)}</p>
+            <button onclick="deleteComment('${comment.id}')" class="p-1 text-gray-300 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-2">${formatRelativeDate(comment.createdAt)}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">${formatRelativeDate(comment.createdAt)}</p>
         </div>
       `).join('');
 }
@@ -738,22 +783,22 @@ function renderHistory() {
   
   const versions = getVersions(currentHistoryItem.id);
   document.getElementById('historyList').innerHTML = versions.length === 0
-    ? '<div class="text-center py-8 text-gray-400">No version history</div>'
+    ? '<div class="text-center py-8 text-gray-400 dark:text-gray-500">No version history</div>'
     : versions.map((version, index) => `
-        <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
+        <div class="border border-gray-200 dark:border-slate-600 rounded-lg p-3 hover:border-blue-300 dark:hover:border-blue-500 transition-colors">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">${index === 0 ? 'Latest' : `Version ${versions.length - index}`}</span>
-            <span class="text-xs text-gray-400">${formatDate(version.createdAt)}</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${index === 0 ? 'Latest' : `Version ${versions.length - index}`}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">${formatDate(version.createdAt)}</span>
           </div>
-          <div class="text-sm text-gray-600 mb-2">
+          <div class="text-sm text-gray-600 dark:text-gray-300 mb-2">
             <span class="font-medium">Title:</span> ${escapeHtml(version.data.title)}
           </div>
           ${currentHistoryItem.type === 'note' && version.data.content ? 
-            `<div class="text-sm text-gray-500 truncate">${escapeHtml(version.data.content.substring(0, 100))}${version.data.content.length > 100 ? '...' : ''}</div>` : ''}
+            `<div class="text-sm text-gray-500 dark:text-gray-400 truncate">${escapeHtml(version.data.content.substring(0, 100))}${version.data.content.length > 100 ? '...' : ''}</div>` : ''}
           ${currentHistoryItem.type === 'task' ? 
-            `<div class="text-sm text-gray-500">Status: <span class="capitalize">${version.data.status.replace('-', ' ')}</span></div>` : ''}
+            `<div class="text-sm text-gray-500 dark:text-gray-400">Status: <span class="capitalize">${version.data.status.replace('-', ' ')}</span></div>` : ''}
           ${index > 0 ? `
-            <button onclick="revertToVersion('${version.id}')" class="mt-2 flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600">
+            <button onclick="revertToVersion('${version.id}')" class="mt-2 flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               Revert to this version
             </button>
@@ -955,14 +1000,14 @@ function renderNotes() {
     .sort((a, b) => b.updatedAt - a.updatedAt);
   
   document.getElementById('notesList').innerHTML = filteredNotes.length === 0
-    ? `<div class="text-center text-gray-400 py-8 text-sm">${searchQuery ? 'No notes found' : 'No notes yet'}</div>`
+    ? `<div class="text-center text-gray-400 dark:text-gray-500 py-8 text-sm">${searchQuery ? 'No notes found' : 'No notes yet'}</div>`
     : filteredNotes.map(note => `
         <button onclick="selectNote('${note.id}')" 
           class="w-full text-left p-2 rounded-lg transition-colors ${currentNote?.id === note.id 
-            ? 'bg-blue-50 border border-blue-200' 
-            : 'hover:bg-gray-50 border border-transparent'}">
-          <div class="font-medium text-gray-800 truncate text-sm">${escapeHtml(note.title)}</div>
-          <div class="text-xs text-gray-400 mt-0.5">${formatRelativeDate(note.updatedAt)}</div>
+            ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' 
+            : 'hover:bg-gray-50 dark:hover:bg-slate-700 border border-transparent'}">
+          <div class="font-medium text-gray-800 dark:text-white truncate text-sm">${escapeHtml(note.title)}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">${formatRelativeDate(note.updatedAt)}</div>
         </button>
       `).join('');
 }
@@ -1008,7 +1053,7 @@ function renderNoteEditor() {
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       <span>Edit</span>
     `;
-    document.getElementById('noteEditBtn').className = 'flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 text-sm';
+    document.getElementById('noteEditBtn').className = 'flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-sm';
   }
 }
 
@@ -1195,6 +1240,9 @@ function renderAll() {
 }
 
 async function init() {
+  // Initialize dark mode
+  initDarkMode();
+  
   // Load GitHub config
   GitHubStorage.loadConfig();
   
