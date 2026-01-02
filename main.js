@@ -2,15 +2,18 @@
 let appData = {
   tasks: [],
   notes: [],
+  scripts: [],
   versions: []
 };
 
 let currentView = 'kanban';
 let currentNote = null;
+let currentScript = null;
 let currentTaskForComments = null;
 let currentHistoryItem = null;
 let addTaskStatus = 'todo';
 let isNoteEditing = false;
+let isScriptEditing = false;
 let draggedTaskId = null;
 let lastSyncTime = null;
 
@@ -54,6 +57,20 @@ window.importData = importData;
 window.clearAllData = clearAllData;
 window.syncWithGitHub = syncWithGitHub;
 window.toggleDarkMode = toggleDarkMode;
+window.createScript = createScript;
+window.selectScript = selectScript;
+window.toggleScriptEdit = toggleScriptEdit;
+window.updateScriptName = updateScriptName;
+window.updateScriptDescription = updateScriptDescription;
+window.updateScriptLanguage = updateScriptLanguage;
+window.updateScriptCode = updateScriptCode;
+window.deleteCurrentScript = deleteCurrentScript;
+window.copyScriptCode = copyScriptCode;
+window.saveScriptToFile = saveScriptToFile;
+window.importScriptFromFile = importScriptFromFile;
+window.showScriptHistory = showScriptHistory;
+window.syncScriptsWithGitHub = syncScriptsWithGitHub;
+window.filterScripts = filterScripts;
 
 // ==================== DARK MODE ====================
 function toggleDarkMode() {
@@ -369,16 +386,22 @@ async function saveData() {
 async function loadData() {
   LocalStorage.load();
   
+  // Ensure scripts array exists (for backward compatibility)
+  if (!appData.scripts) {
+    appData.scripts = [];
+  }
+  
   if (GitHubStorage.isConfigured()) {
     updateSyncStatus('syncing');
     const remote = await GitHubStorage.getFile('taskflow-data.json');
     if (remote && remote.content) {
       // Merge: use remote if newer
       const remoteData = remote.content;
-      if (remoteData.tasks || remoteData.notes) {
+      if (remoteData.tasks || remoteData.notes || remoteData.scripts) {
         appData = {
           tasks: remoteData.tasks || [],
           notes: remoteData.notes || [],
+          scripts: remoteData.scripts || [],
           versions: remoteData.versions || []
         };
         LocalStorage.save();
@@ -404,6 +427,7 @@ async function syncWithGitHub() {
     appData = {
       tasks: remote.content.tasks || [],
       notes: remote.content.notes || [],
+      scripts: remote.content.scripts || [],
       versions: remote.content.versions || []
     };
     LocalStorage.save();
@@ -519,7 +543,8 @@ function restoreLastSyncTime() {
 }
 
 function updateStats() {
-  document.getElementById('stats').textContent = `${appData.tasks.length} tasks · ${appData.notes.length} notes`;
+  const scriptsCount = appData.scripts ? appData.scripts.length : 0;
+  document.getElementById('stats').textContent = `${appData.tasks.length} tasks · ${appData.notes.length} notes · ${scriptsCount} scripts`;
   document.getElementById('storageInfo').textContent = GitHubStorage.isConfigured() 
     ? `Stored in GitHub: ${GitHubStorage.config.repo}` 
     : 'Data stored locally';
@@ -542,14 +567,14 @@ function setView(view) {
   
   document.getElementById('kanbanView').classList.toggle('hidden', view !== 'kanban');
   document.getElementById('notesView').classList.toggle('hidden', view !== 'notes');
+  document.getElementById('scriptsView').classList.toggle('hidden', view !== 'scripts');
   
-  document.getElementById('kanbanTab').className = view === 'kanban' 
-    ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
-    : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
+  const activeClass = 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm';
+  const inactiveClass = 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
   
-  document.getElementById('notesTab').className = view === 'notes'
-    ? 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
-    : 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
+  document.getElementById('kanbanTab').className = view === 'kanban' ? activeClass : inactiveClass;
+  document.getElementById('notesTab').className = view === 'notes' ? activeClass : inactiveClass;
+  document.getElementById('scriptsTab').className = view === 'scripts' ? activeClass : inactiveClass;
 }
 
 // ==================== KANBAN RENDERING ====================
@@ -791,12 +816,15 @@ function renderHistory() {
             <span class="text-xs text-gray-400 dark:text-gray-500">${formatDate(version.createdAt)}</span>
           </div>
           <div class="text-sm text-gray-600 dark:text-gray-300 mb-2">
-            <span class="font-medium">Title:</span> ${escapeHtml(version.data.title)}
+            <span class="font-medium">${currentHistoryItem.type === 'script' ? 'Name:' : 'Title:'}</span> ${escapeHtml(version.data.title || version.data.name)}
           </div>
           ${currentHistoryItem.type === 'note' && version.data.content ? 
             `<div class="text-sm text-gray-500 dark:text-gray-400 truncate">${escapeHtml(version.data.content.substring(0, 100))}${version.data.content.length > 100 ? '...' : ''}</div>` : ''}
           ${currentHistoryItem.type === 'task' ? 
             `<div class="text-sm text-gray-500 dark:text-gray-400">Status: <span class="capitalize">${version.data.status.replace('-', ' ')}</span></div>` : ''}
+          ${currentHistoryItem.type === 'script' ? 
+            `<div class="text-sm text-gray-500 dark:text-gray-400">Language: <span class="capitalize">${version.data.language}</span></div>
+             ${version.data.code ? `<div class="text-sm text-gray-500 dark:text-gray-400 truncate mt-1 font-mono">${escapeHtml(version.data.code.substring(0, 80))}${version.data.code.length > 80 ? '...' : ''}</div>` : ''}` : ''}
           ${index > 0 ? `
             <button onclick="revertToVersion('${version.id}')" class="mt-2 flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -818,7 +846,7 @@ function revertToVersion(versionId) {
       saveData();
       renderTasks();
     }
-  } else {
+  } else if (version.itemType === 'note') {
     const noteIdx = appData.notes.findIndex(n => n.id === version.itemId);
     if (noteIdx !== -1) {
       appData.notes[noteIdx] = { ...version.data, updatedAt: Date.now() };
@@ -826,6 +854,15 @@ function revertToVersion(versionId) {
       saveData();
       renderNotes();
       renderNoteEditor();
+    }
+  } else if (version.itemType === 'script') {
+    const scriptIdx = appData.scripts.findIndex(s => s.id === version.itemId);
+    if (scriptIdx !== -1) {
+      appData.scripts[scriptIdx] = { ...version.data, updatedAt: Date.now() };
+      currentScript = appData.scripts[scriptIdx];
+      saveData();
+      renderScripts();
+      renderScriptEditor();
     }
   }
   
@@ -1118,6 +1155,7 @@ function deleteCurrentNote() {
 function handleSearch() {
   renderTasks();
   renderNotes();
+  renderScripts();
 }
 
 // ==================== SETTINGS & GITHUB CONFIG ====================
@@ -1200,10 +1238,11 @@ function importData() {
       const text = await file.text();
       const data = JSON.parse(text);
       
-      if (data.tasks && data.notes) {
+      if (data.tasks || data.notes || data.scripts) {
         appData = {
           tasks: data.tasks || [],
           notes: data.notes || [],
+          scripts: data.scripts || [],
           versions: data.versions || []
         };
         saveData();
@@ -1222,8 +1261,9 @@ function importData() {
 function clearAllData() {
   if (confirm('Are you sure? This will delete ALL your data!')) {
     if (confirm('This action cannot be undone. Continue?')) {
-      appData = { tasks: [], notes: [], versions: [] };
+      appData = { tasks: [], notes: [], scripts: [], versions: [] };
       currentNote = null;
+      currentScript = null;
       saveData();
       renderAll();
       showToast('All data cleared');
@@ -1231,11 +1271,424 @@ function clearAllData() {
   }
 }
 
+// ==================== SCRIPTS ====================
+const languageExtensions = {
+  javascript: 'js',
+  python: 'py',
+  bash: 'sh',
+  html: 'html',
+  css: 'css',
+  sql: 'sql',
+  json: 'json',
+  yaml: 'yml',
+  markdown: 'md',
+  other: 'txt'
+};
+
+const languageColors = {
+  javascript: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  python: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  bash: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  html: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  css: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  sql: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300',
+  json: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+  yaml: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  markdown: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+  other: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+};
+
+function createNewScript(name = 'Untitled Script') {
+  const script = {
+    id: generateId(),
+    name,
+    description: '',
+    language: 'javascript',
+    code: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  if (!appData.scripts) appData.scripts = [];
+  appData.scripts.push(script);
+  createVersion(script.id, 'script', script);
+  saveData();
+  return script;
+}
+
+function updateScriptData(scriptId, updates) {
+  const script = appData.scripts.find(s => s.id === scriptId);
+  if (script) {
+    Object.assign(script, updates, { updatedAt: Date.now() });
+    createVersion(script.id, 'script', script);
+    saveData();
+  }
+  return script;
+}
+
+function deleteScriptData(scriptId) {
+  const idx = appData.scripts.findIndex(s => s.id === scriptId);
+  if (idx !== -1) {
+    appData.scripts.splice(idx, 1);
+    saveData();
+  }
+}
+
+function renderScripts() {
+  if (!appData.scripts) appData.scripts = [];
+  
+  const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+  const languageFilter = document.getElementById('scriptLanguageFilter')?.value || '';
+  
+  let filteredScripts = appData.scripts
+    .filter(script => 
+      script.name.toLowerCase().includes(searchQuery) ||
+      script.description.toLowerCase().includes(searchQuery) ||
+      script.code.toLowerCase().includes(searchQuery)
+    );
+  
+  if (languageFilter) {
+    filteredScripts = filteredScripts.filter(s => s.language === languageFilter);
+  }
+  
+  filteredScripts.sort((a, b) => b.updatedAt - a.updatedAt);
+  
+  const listEl = document.getElementById('scriptsList');
+  if (!listEl) return;
+  
+  listEl.innerHTML = filteredScripts.length === 0
+    ? `<div class="text-center text-gray-400 dark:text-gray-500 py-8 text-sm">${searchQuery || languageFilter ? 'No scripts found' : 'No scripts yet'}</div>`
+    : filteredScripts.map(script => `
+        <button onclick="selectScript('${script.id}')" 
+          class="w-full text-left p-3 rounded-lg transition-colors ${currentScript?.id === script.id 
+            ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' 
+            : 'hover:bg-gray-50 dark:hover:bg-slate-700 border border-transparent'}">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded ${languageColors[script.language] || languageColors.other}">${script.language.toUpperCase()}</span>
+            <span class="font-medium text-gray-800 dark:text-white truncate text-sm flex-1">${escapeHtml(script.name)}</span>
+          </div>
+          ${script.description ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">${escapeHtml(script.description)}</div>` : ''}
+          <div class="text-xs text-gray-400 dark:text-gray-500">${formatRelativeDate(script.updatedAt)}</div>
+        </button>
+      `).join('');
+}
+
+function selectScript(scriptId) {
+  // Save current script if editing
+  if (isScriptEditing && currentScript) {
+    saveCurrentScript();
+  }
+  
+  currentScript = appData.scripts.find(s => s.id === scriptId);
+  isScriptEditing = false;
+  renderScripts();
+  renderScriptEditor();
+}
+
+function renderScriptEditor() {
+  const emptyEl = document.getElementById('scriptEditorEmpty');
+  const editorEl = document.getElementById('scriptEditor');
+  
+  if (!emptyEl || !editorEl) return;
+  
+  if (!currentScript) {
+    emptyEl.classList.remove('hidden');
+    editorEl.classList.add('hidden');
+    return;
+  }
+  
+  emptyEl.classList.add('hidden');
+  editorEl.classList.remove('hidden');
+  
+  document.getElementById('scriptName').value = currentScript.name;
+  document.getElementById('scriptDescription').value = currentScript.description;
+  document.getElementById('scriptLanguage').value = currentScript.language;
+  document.getElementById('scriptCode').value = currentScript.code;
+  document.getElementById('scriptCodeDisplay').textContent = currentScript.code || '// No code yet. Click Edit to add some.';
+  
+  if (isScriptEditing) {
+    document.getElementById('scriptCode').classList.remove('hidden');
+    document.getElementById('scriptPreview').classList.add('hidden');
+    document.getElementById('scriptEditBtn').innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+      <span>Save</span>
+    `;
+    document.getElementById('scriptEditBtn').className = 'flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm';
+  } else {
+    document.getElementById('scriptCode').classList.add('hidden');
+    document.getElementById('scriptPreview').classList.remove('hidden');
+    document.getElementById('scriptEditBtn').innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      <span>Edit</span>
+    `;
+    document.getElementById('scriptEditBtn').className = 'flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-sm';
+  }
+}
+
+function toggleScriptEdit() {
+  if (isScriptEditing) {
+    saveCurrentScript();
+    isScriptEditing = false;
+  } else {
+    isScriptEditing = true;
+  }
+  renderScriptEditor();
+}
+
+function saveCurrentScript() {
+  if (!currentScript) return;
+  
+  const newCode = document.getElementById('scriptCode').value;
+  if (newCode !== currentScript.code) {
+    updateScriptData(currentScript.id, { code: newCode });
+    currentScript = appData.scripts.find(s => s.id === currentScript.id);
+    renderScripts();
+  }
+}
+
+function updateScriptName() {
+  if (currentScript) {
+    const newName = document.getElementById('scriptName').value.trim();
+    if (newName && newName !== currentScript.name) {
+      updateScriptData(currentScript.id, { name: newName });
+      currentScript = appData.scripts.find(s => s.id === currentScript.id);
+      renderScripts();
+    }
+  }
+}
+
+function updateScriptDescription() {
+  if (currentScript) {
+    const newDesc = document.getElementById('scriptDescription').value;
+    if (newDesc !== currentScript.description) {
+      updateScriptData(currentScript.id, { description: newDesc });
+      currentScript = appData.scripts.find(s => s.id === currentScript.id);
+    }
+  }
+}
+
+function updateScriptLanguage() {
+  if (currentScript) {
+    const newLang = document.getElementById('scriptLanguage').value;
+    if (newLang !== currentScript.language) {
+      updateScriptData(currentScript.id, { language: newLang });
+      currentScript = appData.scripts.find(s => s.id === currentScript.id);
+      renderScripts();
+    }
+  }
+}
+
+function updateScriptCode() {
+  if (currentScript) {
+    saveCurrentScript();
+  }
+}
+
+function createScript() {
+  const script = createNewScript();
+  currentScript = script;
+  isScriptEditing = true;
+  renderScripts();
+  renderScriptEditor();
+  document.getElementById('scriptName').focus();
+  document.getElementById('scriptName').select();
+}
+
+function deleteCurrentScript() {
+  if (currentScript && confirm('Delete this script?')) {
+    deleteScriptData(currentScript.id);
+    currentScript = null;
+    renderScripts();
+    renderScriptEditor();
+  }
+}
+
+function copyScriptCode() {
+  if (!currentScript) return;
+  
+  navigator.clipboard.writeText(currentScript.code).then(() => {
+    showToast('Code copied to clipboard!');
+  }).catch(() => {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = currentScript.code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('Code copied!');
+  });
+}
+
+function saveScriptToFile(format = 'json') {
+  if (!currentScript) return;
+  
+  if (format === 'code') {
+    // Save as code file with appropriate extension
+    const ext = languageExtensions[currentScript.language] || 'txt';
+    const blob = new Blob([currentScript.code], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentScript.name.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Script saved as code file!');
+    return;
+  }
+  
+  const scriptData = {
+    ...currentScript,
+    exportedAt: Date.now(),
+    version: '1.0'
+  };
+  
+  const blob = new Blob([JSON.stringify(scriptData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${currentScript.name.replace(/[^a-z0-9]/gi, '_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Script saved as JSON!');
+}
+
+function importScriptFromFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,.js,.py,.sh,.html,.css,.sql,.yaml,.yml,.md,.txt';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      let scriptData;
+      
+      if (file.name.endsWith('.json')) {
+        scriptData = JSON.parse(text);
+      } else {
+        // Detect language from extension
+        const ext = file.name.split('.').pop().toLowerCase();
+        const langMap = {
+          'js': 'javascript',
+          'py': 'python',
+          'sh': 'bash',
+          'html': 'html',
+          'css': 'css',
+          'sql': 'sql',
+          'json': 'json',
+          'yaml': 'yaml',
+          'yml': 'yaml',
+          'md': 'markdown',
+          'txt': 'other'
+        };
+        
+        scriptData = {
+          name: file.name.replace(/\.[^.]+$/, ''),
+          description: `Imported from ${file.name}`,
+          language: langMap[ext] || 'other',
+          code: text
+        };
+      }
+      
+      // Create new script from imported data
+      const script = {
+        id: generateId(),
+        name: scriptData.name || 'Imported Script',
+        description: scriptData.description || '',
+        language: scriptData.language || 'javascript',
+        code: scriptData.code || '',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      if (!appData.scripts) appData.scripts = [];
+      appData.scripts.push(script);
+      createVersion(script.id, 'script', script);
+      saveData();
+      
+      currentScript = script;
+      renderScripts();
+      renderScriptEditor();
+      showToast('Script imported!');
+    } catch (err) {
+      console.error('Import error:', err);
+      alert('Failed to import script');
+    }
+  };
+  input.click();
+}
+
+function showScriptHistory() {
+  if (!currentScript) return;
+  currentHistoryItem = { id: currentScript.id, type: 'script' };
+  renderHistory();
+  document.getElementById('historyModal').classList.remove('hidden');
+}
+
+async function syncScriptsWithGitHub() {
+  if (!GitHubStorage.isConfigured()) {
+    showSetup();
+    return;
+  }
+  
+  updateSyncStatus('syncing');
+  const syncIcon = document.getElementById('scriptsSyncIcon');
+  const syncText = document.getElementById('scriptsSyncText');
+  if (syncIcon) syncIcon.classList.add('animate-spin');
+  if (syncText) syncText.textContent = 'Syncing...';
+  
+  // Pull from GitHub
+  const remote = await GitHubStorage.getFile('taskflow-data.json');
+  if (remote && remote.content) {
+    // Merge scripts from remote
+    const remoteScripts = remote.content.scripts || [];
+    
+    // Smart merge: keep local scripts that don't exist remotely, update existing ones
+    const mergedScripts = [...remoteScripts];
+    if (appData.scripts) {
+      appData.scripts.forEach(localScript => {
+        const existingIdx = mergedScripts.findIndex(s => s.id === localScript.id);
+        if (existingIdx === -1) {
+          // Local script doesn't exist remotely, add it
+          mergedScripts.push(localScript);
+        } else if (localScript.updatedAt > mergedScripts[existingIdx].updatedAt) {
+          // Local is newer, use local
+          mergedScripts[existingIdx] = localScript;
+        }
+      });
+    }
+    
+    appData.scripts = mergedScripts;
+    appData.tasks = remote.content.tasks || appData.tasks;
+    appData.notes = remote.content.notes || appData.notes;
+    appData.versions = remote.content.versions || appData.versions;
+    LocalStorage.save();
+  }
+  
+  // Push to GitHub
+  const success = await GitHubStorage.saveFile('taskflow-data.json', appData, 'Sync scripts from TaskFlow');
+  updateSyncStatus(success ? 'synced' : 'error');
+  
+  if (syncIcon) syncIcon.classList.remove('animate-spin');
+  if (syncText) syncText.textContent = success ? 'Synced' : 'Error';
+  
+  renderScripts();
+  renderScriptEditor();
+  showToast(success ? 'Scripts synced!' : 'Sync failed');
+}
+
+function filterScripts() {
+  renderScripts();
+}
+
 // ==================== INITIALIZATION ====================
 function renderAll() {
   renderTasks();
   renderNotes();
   renderNoteEditor();
+  renderScripts();
+  renderScriptEditor();
   updateStats();
 }
 
