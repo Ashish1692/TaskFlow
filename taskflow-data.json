@@ -1,5 +1,31 @@
 {
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "id_1767341735980_wzs7z2w5v",
+      "title": "Test",
+      "description": "",
+      "status": "todo",
+      "comments": [],
+      "createdAt": 1767341735980,
+      "updatedAt": 1767341735980
+    }
+  ],
   "notes": [],
-  "versions": []
+  "versions": [
+    {
+      "id": "id_1767341735980_c7qzqvt0h",
+      "itemId": "id_1767341735980_wzs7z2w5v",
+      "itemType": "task",
+      "data": {
+        "id": "id_1767341735980_wzs7z2w5v",
+        "title": "Test",
+        "description": "",
+        "status": "todo",
+        "comments": [],
+        "createdAt": 1767341735980,
+        "updatedAt": 1767341735980
+      },
+      "createdAt": 1767341735980
+    }
+  ]
 }
